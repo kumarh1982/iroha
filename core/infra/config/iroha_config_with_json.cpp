@@ -81,3 +81,7 @@ uint16_t IrohaConfigManager::getGrpcPortNumber(uint16_t defaultValue) {
 uint16_t IrohaConfigManager::getHttpPortNumber(uint16_t defaultValue) {
     return this->getParam<uint16_t>("http_port", defaultValue);
 }
+
+std::string IrohaConfigManager::getHttpHost(const std::string& defaultValue) {
+    return this->getParam<std::string>("http_host", defaultValue);
+}

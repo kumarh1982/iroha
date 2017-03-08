@@ -148,30 +148,6 @@ if(TESTING)
 endif()
 
 
-###############################
-#         cappuccino          #
-###############################
-ExternalProject_Add(mizukisonoko_cappuccino
-  GIT_REPOSITORY    "https://github.com/MizukiSonoko/Cappuccino.git"
-  GIT_TAG           "featue/asio"
-  BUILD_COMMAND     "" # remove build step, header only lib
-  CONFIGURE_COMMAND "" # remove configure step
-  INSTALL_COMMAND   "" # remove install step
-  TEST_COMMAND      "" # remove test step
-  UPDATE_COMMAND    "" # remove update step
-  )
-ExternalProject_Get_Property(mizukisonoko_cappuccino source_dir)
-set(cappuccino_SOURCE_DIR "${source_dir}")
-
-# since it is header only, we changed STATIC to INTERFACE below
-add_library(cappuccino INTERFACE IMPORTED)
-set_target_properties(cappuccino PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${cappuccino_SOURCE_DIR}
-  )
-add_dependencies(cappuccino mizukisonoko_cappuccino json asio)
-
-
-
 ##############################
 #         benchmark          #
 ##############################

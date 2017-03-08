@@ -1,5 +1,6 @@
 ADD_LIBRARY(http_server_with_cappuccino STATIC 
   http_server_with_cappuccino.cpp
+  cappuccino.hpp
 )
 
 target_link_libraries(http_server_with_cappuccino
@@ -9,7 +10,7 @@ target_link_libraries(http_server_with_cappuccino
   base64
   signature
   connection_with_grpc
-  cappuccino
   create_objects_helper
   asio
+  json
 )
