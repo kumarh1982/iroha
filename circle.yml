@@ -14,36 +14,58 @@ dependencies:
     - ~/iroha/external
     # to cache docker images
     - ~/docker 
+    # cache for apt install ...
+    - ~/apt
+  pre:
+    - sudo rm -rf /etc/apt/sources.list.d/*
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    - sudo apt-get update
   override:
-    # one way to cache iroha-dev container is to save it to tar image. 2 mins vs 10 mins without caching.
-    - if [[ -e ~/docker/iroha-dev.tar ]]; then docker load -i ~/docker/iroha-dev.tar; else docker build --rm=false -t hyperledger/iroha-dev ${IROHA_HOME}/docker/dev; fi
-    # build iroha. Result of this instruction is ${IROHA_HOME}/docker/build/iroha.tar
     - >
-      docker run -i \
-        -v ${IROHA_HOME}/docker/build:/build \
-        -v ${IROHA_HOME}:/opt/iroha \
-        hyperledger/iroha-dev \
-        sh <<< "cd /opt/iroha/docker/dev/scripts; ./build-iroha.sh Release || exit 2; ./mktar-iroha.sh || exit 3; cp /tmp/iroha.tar /build/iroha.tar || exit 4"
-    # build iroha-docker image
-    - docker build --rm=false -t hyperledger/iroha-docker ${IROHA_HOME}/docker/build
-    # cache iroha-dev image. takes 30 sec to save into file
-    - mkdir -p ~/docker; docker save hyperledger/iroha-dev > ~/docker/iroha-dev.tar
+      if [ ! -d ~/cmake-3.3.0-Linux-x86_64 ]; then
+        echo "No cache - building CMake"
+        cd ~ 
+        wget --quiet https://cmake.org/files/v3.3/cmake-3.3.0-Linux-x86_64.tar.gz 
+        tar -xvf cmake-3.3.0-Linux-x86_64.tar.gz
+      else
+        echo "Cached CMake found"
+      fi
+    - >
+      if [ ! -d ~/apt ]; then
+        echo "No cache - downloading build dependencies"
+        mkdir ~/apt && cd apt
+        # dependencies for install:
+        sudo apt-get install --download-only -y xsltproc build-essential gcc-5 g++-5
+        cp /var/cache/apt/archives/*.deb .
+      else
+        echo "Cached dependencies found"
+      fi
+    # install build dependencies
+    - sudo dpkg -i ~/apt/*.deb
+    # use gcc5
+    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 100
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 100
 
+  post:
+    # one way to cache iroha-dev container is to save it to tar image. 2 mins vs 10 mins without caching.
+    - if [[ -e ~/docker/ubuntu.tar ]]; then docker load -i ~/docker/ubuntu.tar; else docker pull ubuntu; fi
+    # build iroha-docker image
+    - ${IROHA_HOME}/docker/build.sh
 
 test:
   pre:
     # TESTS: 
     # first, run ctest inside a container
-    - docker run -p 1204:1204 hyperledger/iroha-docker /test.sh 
+    - docker run -p 1204:1204 hyperledger/iroha-docker /iroha/scripts/test.sh 
     # then, run iroha with dummy config (1 node) and print its output to stdout
-    - export ID=$(docker run -it -d -p 1204:1204 hyperledger/iroha-docker /run.sh)
+    - export ID=$(docker run -it -d -p 1204:1204 hyperledger/iroha-docker)
     # put new tests below
     - curl -X POST http://127.0.0.1:1204/account/register -d '{"publicKey":"WdvM/DPabapmtA7ISbTYPywbHxk8gWu2221LzmcmAgw=","alias":"yonezu","timestamp":1482053586}'
   post:
     # iroha-main logs
     - docker logs $ID
     # if node is alive, then iroha-main still works, otherwise test is failed
-    - (docker kill $ID && echo "Container worked and now killed. OK") || (echo "Container died. FAIL." && exit 1)
+    - (docker kill $ID && echo "Container was alive and now killed. OK") || (echo "Container died. FAIL." && exit 1)
 
 deployment:
   hub:

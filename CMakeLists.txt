@@ -22,7 +22,6 @@ include_directories(${PROJECT_SOURCE_DIR}/core)
 include("dependencies.cmake")
 
 add_subdirectory(protos)
-
 add_subdirectory(core)
 add_subdirectory(peer)
 add_subdirectory(tools)
